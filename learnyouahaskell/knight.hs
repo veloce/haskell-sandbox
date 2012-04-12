@@ -16,3 +16,16 @@ inMany x start = return start >>= foldr (<=<) return (replicate x moveKnight)
 
 canReachIn :: Int -> KnightPos -> KnightPos -> Bool
 canReachIn x start end = end `elem` inMany x start
+
+movePath :: Path -> [Path]
+movePath path = map (\x -> path ++ [x]) $ moveKnight (last path)
+
+inManyPath :: Int -> KnightPos -> [Path]
+inManyPath x start = return [start] >>= foldr (<=<) return (replicate x movePath)
+
+canReachInPath :: Int -> KnightPos -> KnightPos -> Maybe [Path]
+canReachInPath x start end =
+    if paths == []
+        then Nothing
+        else Just paths
+    where paths = filter (\x -> end == last x) $ inManyPath x start
