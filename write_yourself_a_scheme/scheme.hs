@@ -25,11 +25,16 @@ readExpr input = case parse parseExpr "lisp" input of
 spaces :: Parser ()
 spaces = skipMany1 space
 
+escChar :: Parser Char
+escChar = char '\\' >> oneOf "\\\"tnr"
+
 parseString :: Parser LispVal
-parseString = do char '"'
-                 x <- many (noneOf "\"")
-                 char '"'
-                 return $ String x
+parseString = do
+    char '"'
+    let valid = escChar <|> noneOf "\""
+    x <- many valid
+    char '"'
+    return $ String x
 
 parseAtom :: Parser LispVal
 parseAtom = do first <- letter <|> symbol
@@ -41,10 +46,7 @@ parseAtom = do first <- letter <|> symbol
                           _    -> Atom atom
 
 parseNumber :: Parser LispVal
-parseNumber = do
-    digits <- many1 digit
-    let num = read digits
-    return $ Number num
+parseNumber = many1 digit >>= (\x -> return $ (Number . read) x)
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
