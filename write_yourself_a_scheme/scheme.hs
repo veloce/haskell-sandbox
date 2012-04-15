@@ -31,7 +31,7 @@ escChar = char '\\' >> oneOf "\\\"tnr"
 parseString :: Parser LispVal
 parseString = do
     char '"'
-    let valid = escChar <|> noneOf "\""
+    let valid = noneOf "\"" <|> escChar
     x <- many valid
     char '"'
     return $ String x
