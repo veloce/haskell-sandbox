@@ -2,6 +2,7 @@ module Main where
 import System.Environment
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
+import Numeric
 
 data LispVal = Atom String
     | List [LispVal]
@@ -9,6 +10,7 @@ data LispVal = Atom String
     | Number Integer
     | String String
     | Bool Bool
+    | Char Char
 
 main = do
     args <- getArgs
@@ -46,10 +48,30 @@ parseAtom = do first <- letter <|> symbol
                           _    -> Atom atom
 
 parseNumber :: Parser LispVal
-parseNumber = many1 digit >>= (\x -> return $ (Number . read) x)
+parseNumber = do
+    first <- char '#'
+    second <- oneOf "bdox"
+    rest <- many digit
+    let prefix = first:[second]
+    return $ case prefix of
+        "#o" -> Number num
+            where [(num, _)] = readOct rest
+        "#x" -> Number num
+            where [(num, _)] = readHex rest
+        "#d" -> Number num
+            where [(num, _)] = readDec rest
+    <|> (liftM (Number . read) $ many1 digit)
+
+parseChar :: Parser LispVal
+parseChar = do
+    char '#'
+    char '\\'
+    x <- anyChar
+    return $ Char x
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
+        <|> parseChar
         <|> parseString
         <|> parseNumber
 
