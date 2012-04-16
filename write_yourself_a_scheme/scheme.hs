@@ -3,6 +3,7 @@ import System.Environment
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
 import Numeric
+import Data.Char
 
 data LispVal = Atom String
     | List [LispVal]
@@ -48,19 +49,23 @@ parseAtom = do first <- letter <|> symbol
                           _    -> Atom atom
 
 parseNumber :: Parser LispVal
-parseNumber = do
-    first <- char '#'
-    second <- oneOf "bdox"
-    rest <- many digit
-    let prefix = first:[second]
-    return $ case prefix of
-        "#o" -> Number num
-            where [(num, _)] = readOct rest
-        "#x" -> Number num
-            where [(num, _)] = readHex rest
-        "#d" -> Number num
-            where [(num, _)] = readDec rest
+parseNumber =
+    (parsePrefixed 'd' readDec)
+    <|> (parsePrefixed 'o' readOct)
+    <|> (parsePrefixed 'x' readHex)
+    <|> (parsePrefixed 'b' readBin)
     <|> (liftM (Number . read) $ many1 digit)
+
+readBin :: (Integral a) => ReadS a
+readBin = readInt 2 (\x -> x == '0' || x == '1') digitToInt
+
+parsePrefixed :: Char -> ReadS Integer -> Parser LispVal
+parsePrefixed prefix readFunc = do
+    char '#'
+    char prefix
+    digits <- many1 digit
+    let [(num, _)] = readFunc digits
+    return $ Number num
 
 parseChar :: Parser LispVal
 parseChar = do
