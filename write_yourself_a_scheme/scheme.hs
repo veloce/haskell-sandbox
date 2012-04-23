@@ -9,6 +9,7 @@ data LispVal = Atom String
     | List [LispVal]
     | DottedList [LispVal] LispVal
     | Number Integer
+    | Float Float
     | String String
     | Bool Bool
     | Char Char
@@ -74,9 +75,30 @@ parseChar = do
     x <- anyChar
     return $ Char x
 
+parseList :: Parser LispVal
+parseList = liftM List $ sepBy parseExpr spaces
+
+parseDottedList :: Parser LispVal
+parseDottedList = do
+    head <- endBy parseExpr spaces
+    tail <- char '.' >> spaces >> parseExpr
+    return $ DottedList head tail
+
+parseQuoted :: Parser LispVal
+parseQuoted = do
+   char '\''
+   x <- parseExpr
+   return $ List [Atom "quote", x]
+
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
-        <|> parseChar
-        <|> parseString
-        <|> parseNumber
+   <|> parseChar
+   <|> parseString
+   <|> parseNumber
+   <|> parseQuoted
+   <|> do
+       char '('
+       x <- try parseList <|> parseDottedList
+       char ')'
+       return x
 
